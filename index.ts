@@ -108,6 +108,7 @@ self.addEventListener('load', ({ target }) => {
   const url = new URL('https://maps.googleapis.com/maps/api/js');
   url.searchParams.set('key', GOOGLE_MAPS_API_KEY);
   url.searchParams.set('libraries', 'geometry');
+  url.searchParams.set('loading', 'async');
 
   script.async = true;
   script.defer = true;
