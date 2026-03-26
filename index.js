@@ -39,38 +39,50 @@ self.addEventListener('load', ({ target }) => {
     const southWest = bounds.getSouthWest();
     const northEast = bounds.getNorthEast();
 
-    const south = southWest.lat() - subtended(maxRadius);
-    const west = southWest.lng() - subtended(maxRadius);
+    const south = southWest.lat() - subtendedLat(maxRadius);
+    const west = southWest.lng() - subtendedLng(south, maxRadius);
 
-    const north = northEast.lat() + subtended(maxRadius);
-    const east = northEast.lng() + subtended(maxRadius);
+    const north = northEast.lat() + subtendedLat(maxRadius);
+    const east = northEast.lng() + subtendedLng(north, maxRadius);
 
     const map = new google.maps.Map(document.getElementById('map'));
     map.fitBounds(bounds);
 
-    const delta = subtended(1);
+    const deltaLat = subtendedLat(4);
 
-    for (let lat = south; lat < north; lat += delta) {
-      for (let lng = west; lng < east; lng += delta) {
+    for (let lat = south; lat < north; lat += deltaLat) {
+      const deltaLng = subtendedLng(lat, 4);
+      for (let lng = west; lng < east; lng += deltaLng) {
         const containingObservations = observations.filter(o => observationContains(o, lat, lng));
         if (containingObservations.length === 0) {
           continue;
         }
 
-        const percentage = averagePercentage(containingObservations);
+        const percentage = weightedAveragePercentage(containingObservations);
         new google.maps.Rectangle({
           fillColor: `hsl(${(percentage * 120) / 100}deg 100% 50%)`,
           strokeWeight: 0,
           map,
           bounds: {
-            north: lat + (delta/2),
-            south: lat - (delta/2),
-            east: lng + (delta/2),
-            west: lng - (delta/2),
+            north: lat + (deltaLat/2),
+            south: lat - (deltaLat/2),
+            east: lng + (deltaLng/2),
+            west: lng - (deltaLng/2),
           }
         })
       }
     }
+
+    //for (const observation of observations) {
+    //  new google.maps.Circle({
+    //    center: observation.latlng,
+    //    fillOpacity: 0,
+    //    map,
+    //    radius: observation.radius,
+    //    strokeOpacity: 0.2,
+    //    strokeWeight: 1,
+    //  });
+    //}
   });
 
   const head = target.getElementsByTagName('head')[0];
@@ -89,12 +101,17 @@ self.addEventListener('load', ({ target }) => {
 });
 
 const averagePercentage = (observations) => {
-  return observations.map(o => o.percentage).reduce((a, b) => a + b) / observations.length;
+  return observations.map(o => o.percentage).reduce(sum) / observations.length;
 }
 
-const observationContains = (observation, lat, lng, globalRadius = 6378135) => {
-  const theta = subtended(observation.radius, globalRadius);
-  const theta2 = theta * theta;
+const weightedAveragePercentage = (observations) => {
+  return observations.map(o => o.percentage / o.radius).reduce(sum) / observations.map(o => 1 / o.radius).reduce(sum);
+};
+
+const sum = (a, b) => a + b;
+
+const observationContains = (observation, lat, lng) => {
+  const theta2 = subtendedLat(observation.radius) * subtendedLng(lat, observation.radius);
 
   const deltaLat = lat - observation.latlng.lat();
   const deltaLng = lng - observation.latlng.lng();
@@ -103,4 +120,9 @@ const observationContains = (observation, lat, lng, globalRadius = 6378135) => {
   return distance2 < theta2;
 };
 
-const subtended = (distance, globalRadius = 6378135) => (distance * 360) / (2 * Math.PI * globalRadius);
+const subtendedLat = (distance, polarRadius = 6356752) => (distance * 180) / (Math.PI * polarRadius);
+
+const subtendedLng = (latitude, distance, equatorialRadius = 6378137) => {
+  const radians = (latitude * Math.PI) / 180;
+  return (distance * 180) / (Math.cos(radians) * Math.PI * equatorialRadius);
+}
