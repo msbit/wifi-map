@@ -1,9 +1,7 @@
 self.addEventListener('load', ({ target }) => {
-  const dropZone = document.getElementById('drop-zone');
+  window.addEventListener('dragover', (event) => event.preventDefault());
 
-  dropZone.addEventListener('dragover', (event) => event.preventDefault());
-
-  dropZone.addEventListener('drop', async (event) => {
+  window.addEventListener('drop', async (event) => {
     event.preventDefault();
 
     const item = Array.prototype.find.call(

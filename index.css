@@ -9,18 +9,3 @@ html, body {
   margin: 0;
   padding: 0;
 }
-
-
-#drop-zone {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 500px;
-  max-width: 100%;
-  height: 200px;
-  padding: 1em;
-  border: 1px solid #cccccc;
-  border-radius: 4px;
-  color: slategray;
-  cursor: pointer;
-}
