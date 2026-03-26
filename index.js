@@ -16,7 +16,7 @@ self.addEventListener('load', ({ target }) => {
 
     const observations = contents.split("\n").map(row => {
       const columns = row.split(',');
-      if (columns.length !== 4) {
+      if (columns.length !== 5) {
         return undefined;
       }
 
@@ -26,7 +26,7 @@ self.addEventListener('load', ({ target }) => {
           parseFloat(columns[1]),
         ),
         radius: parseFloat(columns[2]),
-        rssi: parseInt(columns[3], 10),
+        percentage: parseInt(columns[4], 10),
       };
     }).filter(x => x);
     const bounds = new google.maps.LatLngBounds();
@@ -40,13 +40,11 @@ self.addEventListener('load', ({ target }) => {
     for (const observation of observations) {
       const circle = new google.maps.Circle({
         center: observation.latlng,
-        radius: observation.radius,
+        fillColor: `hsl(${(observation.percentage * 120) / 100} 75 25)`,
         fillOpacity: 0.35,
-        fillColor: '#ffdd00ff',
-        strokeColor: '#ffdd00ff',
-        strokeOpacity: 0.8,
-        strokeWeight: 2,
         map,
+        radius: observation.radius,
+        strokeWeight: 0,
       });
     }
   });
