@@ -34,18 +34,42 @@ self.addEventListener('load', ({ target }) => {
       bounds.extend(observation.latlng);
     }
 
+    const maxRadius = Math.max(...observations.map(o => o.radius));
+
+    const southWest = bounds.getSouthWest();
+    const northEast = bounds.getNorthEast();
+
+    const south = southWest.lat() - subtended(maxRadius);
+    const west = southWest.lng() - subtended(maxRadius);
+
+    const north = northEast.lat() + subtended(maxRadius);
+    const east = northEast.lng() + subtended(maxRadius);
+
     const map = new google.maps.Map(document.getElementById('map'));
     map.fitBounds(bounds);
 
-    for (const observation of observations) {
-      const circle = new google.maps.Circle({
-        center: observation.latlng,
-        fillColor: `hsl(${(observation.percentage * 120) / 100} 75 25)`,
-        fillOpacity: 0.35,
-        map,
-        radius: observation.radius,
-        strokeWeight: 0,
-      });
+    const delta = subtended(1);
+
+    for (let lat = south; lat < north; lat += delta) {
+      for (let lng = west; lng < east; lng += delta) {
+        const containingObservations = observations.filter(o => observationContains(o, lat, lng));
+        if (containingObservations.length === 0) {
+          continue;
+        }
+
+        const percentage = averagePercentage(containingObservations);
+        new google.maps.Rectangle({
+          fillColor: `hsl(${(percentage * 120) / 100}deg 100% 50%)`,
+          strokeWeight: 0,
+          map,
+          bounds: {
+            north: lat + (delta/2),
+            south: lat - (delta/2),
+            east: lng + (delta/2),
+            west: lng - (delta/2),
+          }
+        })
+      }
     }
   });
 
@@ -53,7 +77,6 @@ self.addEventListener('load', ({ target }) => {
   const script = target.createElement('script');
 
   const url = new URL('https://maps.googleapis.com/maps/api/js');
-  url.searchParams.set('callback', 'init');
   url.searchParams.set('key', GOOGLE_MAPS_API_KEY);
   url.searchParams.set('libraries', 'geometry');
 
@@ -64,3 +87,20 @@ self.addEventListener('load', ({ target }) => {
 
   head.appendChild(script);
 });
+
+const averagePercentage = (observations) => {
+  return observations.map(o => o.percentage).reduce((a, b) => a + b) / observations.length;
+}
+
+const observationContains = (observation, lat, lng, globalRadius = 6378135) => {
+  const theta = subtended(observation.radius, globalRadius);
+  const theta2 = theta * theta;
+
+  const deltaLat = lat - observation.latlng.lat();
+  const deltaLng = lng - observation.latlng.lng();
+  const distance2 = (deltaLat * deltaLat) + (deltaLng * deltaLng);
+
+  return distance2 < theta2;
+};
+
+const subtended = (distance, globalRadius = 6378135) => (distance * 360) / (2 * Math.PI * globalRadius);
