@@ -2,6 +2,6 @@
 
 ## Running
 
-Add Google Maps API to `local.js`:
+Add Google Maps API to `local.ts`:
 
-    const GOOGLE_MAPS_API_KEY = '...';
+    export const GOOGLE_MAPS_API_KEY = '...';

@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "@types/google.maps": "~3.58.1",
+    "typescript": "~6.0.2"
+  }
+}
