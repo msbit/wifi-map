@@ -18,6 +18,7 @@ self.addEventListener('load', ({ target }) => {
             }
             observations = observations.concat(contentsToObservations(contents));
         }
+        observations = deduplicate(observations, compareObservations);
         const bounds = new google.maps.LatLngBounds();
         for (const observation of observations) {
             bounds.extend(observation.latlng);
@@ -109,4 +110,15 @@ const subtendedLat = (distance, polarRadius = 6356752) => (distance * 180) / (Ma
 const subtendedLng = (latitude, distance, equatorialRadius = 6378137) => {
     const radians = (latitude * Math.PI) / 180;
     return (distance * 180) / (Math.cos(radians) * Math.PI * equatorialRadius);
+};
+const compareObservations = (a, b) => a.radius === b.radius && a.percentage === b.percentage && a.latlng.lat() === b.latlng.lat() && a.latlng.lng() === b.latlng.lng();
+const deduplicate = (arr, compare) => {
+    const result = [];
+    for (const a of arr) {
+        if (result.some(b => compare(a, b))) {
+            continue;
+        }
+        result.push(a);
+    }
+    return result;
 };
