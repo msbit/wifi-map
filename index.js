@@ -7,22 +7,17 @@ self.addEventListener('load', ({ target }) => {
         if (event.dataTransfer === null) {
             return;
         }
-        const item = Array.prototype.find.call(event.dataTransfer.items, item => item.kind === 'file' && item.type === 'text/csv');
-        if (item === undefined) {
+        const items = Array.prototype.filter.call(event.dataTransfer.items, item => item.kind === 'file' && item.type === 'text/csv');
+        if (items.length === 0) {
             return;
         }
-        const contents = await item.getAsFile().text();
-        observations = observations.concat(contents.split("\n").map(row => {
-            const columns = row.split(',');
-            if (columns.length !== 5) {
-                return undefined;
+        const allContents = await Promise.all(items.map(x => x.getAsFile()?.text()));
+        for (const contents of allContents) {
+            if (contents === undefined) {
+                continue;
             }
-            return {
-                latlng: new google.maps.LatLng(parseFloat(columns[0]), parseFloat(columns[1])),
-                radius: parseFloat(columns[2]),
-                percentage: parseInt(columns[4], 10),
-            };
-        }).filter(x => x !== undefined));
+            observations = observations.concat(contentsToObservations(contents));
+        }
         const bounds = new google.maps.LatLngBounds();
         for (const observation of observations) {
             bounds.extend(observation.latlng);
@@ -85,6 +80,17 @@ self.addEventListener('load', ({ target }) => {
     script.type = 'text/javascript';
     head.appendChild(script);
 });
+const contentsToObservations = (contents) => contents.split("\n").map(row => {
+    const columns = row.split(',');
+    if (columns.length !== 5) {
+        return undefined;
+    }
+    return {
+        latlng: new google.maps.LatLng(parseFloat(columns[0]), parseFloat(columns[1])),
+        radius: parseFloat(columns[2]),
+        percentage: parseInt(columns[4], 10),
+    };
+}).filter(x => x !== undefined);
 const averagePercentage = (observations) => {
     return observations.map(o => o.percentage).reduce(sum) / observations.length;
 };
