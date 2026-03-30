@@ -1,6 +1,7 @@
 import { GOOGLE_MAPS_API_KEY } from './local.js';
 self.addEventListener('load', ({ target }) => {
     window.addEventListener('dragover', (event) => event.preventDefault());
+    let observations = [];
     window.addEventListener('drop', async (event) => {
         event.preventDefault();
         if (event.dataTransfer === null) {
@@ -11,7 +12,7 @@ self.addEventListener('load', ({ target }) => {
             return;
         }
         const contents = await item.getAsFile().text();
-        const observations = contents.split("\n").map(row => {
+        observations = observations.concat(contents.split("\n").map(row => {
             const columns = row.split(',');
             if (columns.length !== 5) {
                 return undefined;
@@ -21,7 +22,7 @@ self.addEventListener('load', ({ target }) => {
                 radius: parseFloat(columns[2]),
                 percentage: parseInt(columns[4], 10),
             };
-        }).filter(x => x !== undefined);
+        }).filter(x => x !== undefined));
         const bounds = new google.maps.LatLngBounds();
         for (const observation of observations) {
             bounds.extend(observation.latlng);
